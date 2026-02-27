@@ -16,7 +16,6 @@ func Unpack(packed string) (string, error) {
 
 	var s strings.Builder
 	for i := 0; i < len(r); i++ {
-
 		if i+1 < len(r) && unicode.IsDigit(r[i+1]) && r[i+1] == '0' {
 			continue
 		}

@@ -2,61 +2,71 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(packed string) (string, error) {
-	r := []rune(packed)
 	if packed == "" {
-		return "", nil
+		return packed, nil
+	}
+	firstRune, _ := utf8.DecodeRuneInString(packed)
+	if unicode.IsDigit(firstRune) {
+		return "", ErrInvalidString
 	}
 
-	var s strings.Builder
-	var isHas bool
-	for i := 0; i < len(r); i++ {
-		if i+1 < len(r) && unicode.IsDigit(r[i+1]) && r[i+1] == '0' {
-			continue
-		}
-
-		if unicode.IsDigit(r[i]) {
-			if isHas {
-				count := int(r[i] - '0')
-				if count == 0 {
-					continue
-				}
-				s.WriteString(strings.Repeat(string(r[i-1]), count-1))
-				isHas = false
-				continue
-			}
-			if i == 0 || unicode.IsDigit(r[i-1]) {
+	var unpacked strings.Builder
+	var prevR rune
+	var position int
+	isPrevEscaped := false
+	runesCount := utf8.RuneCountInString(packed)
+	for _, r := range packed {
+		position++
+		switch {
+		case unicode.IsDigit(r):
+			if !isPrevEscaped && prevR == 0 {
 				return "", ErrInvalidString
 			}
-			count := int(r[i] - '0')
-			if count == 0 {
+
+			if !isPrevEscaped && prevR == '\\' {
+				prevR = r
+				isPrevEscaped = true
 				continue
 			}
-			s.WriteString(strings.Repeat(string(r[i-1]), count-1))
-			isHas = false
-			continue
-		}
 
-		if r[i] == '\\' {
-			if unicode.IsDigit(r[i+1]) || r[i+1] == '\\' {
-
-				s.WriteRune(r[i+1])
-				if unicode.IsDigit(r[i+1]) {
-					isHas = true
-				}
-				i++
+			digit, _ := strconv.Atoi(string(r))
+			unpacked.WriteString(strings.Repeat(string(prevR), digit))
+			prevR = 0
+		case r == '\\':
+			if !isPrevEscaped && prevR == '\\' {
+				prevR = r
+				isPrevEscaped = true
 				continue
 			}
-		}
+			if position == runesCount {
+				return "", ErrInvalidString
+			}
 
-		s.WriteRune(r[i])
-		isHas = false
+			unpacked.WriteRune(prevR)
+			prevR = r
+		default:
+			if !isPrevEscaped && prevR == '\\' {
+				return "", ErrInvalidString
+			}
+
+			if prevR != 0 {
+				unpacked.WriteRune(prevR)
+			}
+			prevR = r
+		}
+		isPrevEscaped = false
 	}
-	return s.String(), nil
+	if prevR != 0 {
+		unpacked.WriteRune(prevR)
+	}
+	return unpacked.String(), nil
 }

@@ -33,7 +33,6 @@ func Top10(str string) []string {
 			isExists[cl] = struct{}{}
 			slItems = append(slItems, Item{Key: cl, Value: k})
 		}
-
 	}
 
 	sort.Slice(slItems, func(i, j int) bool {

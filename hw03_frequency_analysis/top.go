@@ -3,6 +3,7 @@ package hw03frequencyanalysis
 import (
 	"sort"
 	"strings"
+	"unicode"
 )
 
 type Item struct {
@@ -14,12 +15,25 @@ func Top10(str string) []string {
 	sl := strings.Fields(str)
 	mp := make(map[string]int)
 	for _, s := range sl {
-		mp[s]++
+		clean := cleanWord(s)
+		if clean == "-" {
+			continue
+		}
+		mp[clean]++
 	}
 
 	slItems := make([]Item, 0, len(mp))
-	for k, v := range mp {
-		slItems = append(slItems, Item{Key: k, Value: v})
+	isExists := make(map[string]struct{})
+	for _, s := range sl {
+		cl := cleanWord(s)
+		if k, ok := mp[cl]; ok {
+			if _, exists := isExists[cl]; exists {
+				continue
+			}
+			isExists[cl] = struct{}{}
+			slItems = append(slItems, Item{Key: cl, Value: k})
+		}
+
 	}
 
 	sort.Slice(slItems, func(i, j int) bool {
@@ -36,4 +50,11 @@ func Top10(str string) []string {
 	}
 
 	return result
+}
+
+func cleanWord(s string) string {
+	trimmed := strings.TrimFunc(s, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-'
+	})
+	return strings.ToLower(trimmed)
 }
